@@ -11,7 +11,6 @@ import {
   RefreshCw,
   X,
   FileCheck,
-  Phone,
 } from "lucide-react";
 import Header from "@/components/Header";
 import StatusBadge from "@/components/StatusBadge";
@@ -217,8 +216,6 @@ export default function DriversPage() {
                 <th className="py-3.5 px-6">Personnel Full Name</th>
                 <th className="py-3.5 px-6">Role / Type</th>
                 <th className="py-3.5 px-6">Callsign / ID</th>
-                <th className="py-3.5 px-6">Phone Number</th>
-                <th className="py-3.5 px-6">NI Number</th>
                 <th className="py-3.5 px-6">Compliance Status</th>
                 <th className="py-3.5 px-6">Uploaded Docs</th>
                 <th className="py-3.5 px-6 text-right">Actions</th>
@@ -226,10 +223,10 @@ export default function DriversPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {loading && drivers.length === 0 ? (
-                <TableLoader colSpan={8} rows={4} message="Loading fleet personnel roster..." />
+                <TableLoader colSpan={6} rows={4} message="Loading fleet personnel roster..." />
               ) : drivers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400 text-xs">
+                  <td colSpan={6} className="py-8 text-center text-slate-400 text-xs">
                     No records match the current filters.
                   </td>
                 </tr>
@@ -270,22 +267,6 @@ export default function DriversPage() {
                       ) : (
                         <span className="text-slate-400">ID #{d.id}</span>
                       )}
-                    </td>
-                    <td className="py-4 px-6 text-xs font-medium font-mono">
-                      {d.phone ? (
-                        <a
-                          href={`tel:${d.phone}`}
-                          className="inline-flex items-center space-x-1 text-slate-700 hover:text-indigo-600 hover:underline"
-                        >
-                          <Phone className="w-3 h-3 text-slate-400" />
-                          <span>{d.phone}</span>
-                        </a>
-                      ) : (
-                        <span className="text-slate-400 italic">Not set</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-6 font-mono text-xs font-medium">
-                      {d.national_insurance_number || <span className="text-slate-400 italic">Not set</span>}
                     </td>
                     <td className="py-4 px-6">
                       <StatusBadge status={d.overall_status} label={d.overall_badge} />
