@@ -105,7 +105,7 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
         safeguarding_expiry: data.safeguarding_expiry || "",
         first_aid_expiry: data.first_aid_expiry || "",
         autism_awareness_expiry: data.autism_awareness_expiry || "",
-        autism_awareness_expiry_enabled: true,
+        autism_awareness_expiry_enabled: data.autism_awareness_expiry_enabled ?? true,
       });
     } catch (err) {
       console.error("Failed to load driver details:", err);
@@ -152,7 +152,7 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
         safeguarding_expiry: tabAData.safeguarding_expiry || null,
         first_aid_expiry: tabAData.first_aid_expiry || null,
         autism_awareness_expiry: tabAData.autism_awareness_expiry || null,
-        autism_awareness_expiry_enabled: true,
+        autism_awareness_expiry_enabled: tabAData.autism_awareness_expiry_enabled ?? true,
       };
 
       const updated = await apiFetch<Driver>(`/drivers/${driverId}`, {
