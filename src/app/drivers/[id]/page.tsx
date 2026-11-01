@@ -1089,7 +1089,7 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
 
                             <td className="py-4 px-6 max-w-xs">
                               {log.old_value ? (
-                                <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-mono bg-rose-50 text-rose-700 border border-rose-200 line-through">
+                                <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-mono bg-rose-50 text-rose-700 border border-rose-200">
                                   {log.old_value}
                                 </span>
                               ) : (
