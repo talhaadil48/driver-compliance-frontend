@@ -102,6 +102,7 @@ export interface DriverListItem {
   full_name: string;
   type?: string;
   callsign?: string | null;
+  phone?: string | null;
   dob?: string | null;
   national_insurance_number?: string | null;
   is_active: boolean;
@@ -155,4 +156,17 @@ export interface DashboardOverview {
   stats: DashboardStats;
   expiries: ExpiryAlertItem[];
   missing_documents: MissingDocumentItem[];
+}
+
+export interface DriverAuditLog {
+  id: number;
+  driver_id: number;
+  staff_id?: number | null;
+  staff_name: string;
+  action_type: "FIELD_UPDATE" | "DOCUMENT_UPLOAD" | "DOCUMENT_REPLACE" | "DOCUMENT_DELETE" | "DRIVER_CREATED";
+  field_name: string;
+  old_value?: string | null;
+  new_value?: string | null;
+  notes?: string | null;
+  created_at: string;
 }

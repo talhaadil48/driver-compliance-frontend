@@ -16,6 +16,11 @@ import {
   CheckCircle,
   X,
   FileCheck2,
+  History,
+  Clock,
+  User,
+  Phone,
+  Search,
 } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import { PageLoader, ButtonLoader } from "@/components/Loaders";
@@ -27,19 +32,25 @@ import {
   getDocumentDownloadUrl,
   formatDateUK,
 } from "@/lib/api";
-import { Driver, DocumentSlotSummary } from "@/types";
+import { Driver, DocumentSlotSummary, DriverAuditLog } from "@/types";
 
 export default function DriverDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const driverId = parseInt(resolvedParams.id, 10);
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get("tab") === "documents" ? "documents" : "fields";
+  const initialTab = searchParams.get("tab") === "documents" ? "documents" : (searchParams.get("tab") === "history" ? "history" : "fields");
 
-  const [activeTab, setActiveTab] = useState<"fields" | "documents">(initialTab);
+  const [activeTab, setActiveTab] = useState<"fields" | "documents" | "history">(initialTab);
   const [driver, setDriver] = useState<Driver | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingTabA, setSavingTabA] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Tab C: Audit Logs State
+  const [auditLogs, setAuditLogs] = useState<DriverAuditLog[]>([]);
+  const [loadingAudit, setLoadingAudit] = useState(false);
+  const [auditFilter, setAuditFilter] = useState("ALL");
+  const [auditSearch, setAuditSearch] = useState("");
 
   // Tab A Form State
   const [tabAData, setTabAData] = useState({
@@ -103,8 +114,21 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  const loadAuditLogs = async () => {
+    try {
+      setLoadingAudit(true);
+      const logs = await apiFetch<DriverAuditLog[]>(`/drivers/${driverId}/audit-logs`);
+      setAuditLogs(logs);
+    } catch (err) {
+      console.error("Failed to load audit logs:", err);
+    } finally {
+      setLoadingAudit(false);
+    }
+  };
+
   useEffect(() => {
     loadDriver();
+    loadAuditLogs();
   }, [driverId]);
 
   const handleSaveTabA = async (e: React.FormEvent) => {
@@ -138,6 +162,7 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
 
       setDriver(updated);
       setSaveSuccess(true);
+      loadAuditLogs();
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
       alert("Failed to save driver information: " + err.message);
@@ -200,6 +225,7 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
       setUploadFileObj(null);
       setUploadNotes("");
       loadDriver();
+      loadAuditLogs();
     } catch (err: any) {
       setUploadError(err.message || "Failed to upload document.");
     } finally {
@@ -255,6 +281,7 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
       setReplaceDocId(null);
       setReplaceFileObj(null);
       loadDriver();
+      loadAuditLogs();
     } catch (err: any) {
       alert("Failed to replace document: " + err.message);
     } finally {
@@ -267,6 +294,7 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
     try {
       await apiFetch(`/documents/${docId}`, { method: "DELETE" });
       loadDriver();
+      loadAuditLogs();
     } catch (err: any) {
       alert("Failed to delete document: " + err.message);
     }
@@ -349,6 +377,21 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
                   </strong>
                 </span>
                 <span>&bull;</span>
+                <span className="flex items-center space-x-1">
+                  <Phone className="w-3 h-3 text-slate-400" />
+                  <span>Phone: </span>
+                  {driver.phone ? (
+                    <a
+                      href={`tel:${driver.phone}`}
+                      className="text-slate-800 font-mono font-bold hover:text-indigo-600 hover:underline"
+                    >
+                      {driver.phone}
+                    </a>
+                  ) : (
+                    <span className="text-slate-400 italic">Not set</span>
+                  )}
+                </span>
+                <span>&bull;</span>
                 <span className="text-slate-400">Database ID #{driver.id}</span>
               </div>
             </div>
@@ -383,12 +426,27 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
         >
           <FileText className="w-4 h-4" />
           <span>Tab B: Documents</span>
-          <span className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded-full">
+          <span className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded-full font-mono">
             {comp?.documents_summary?.reduce((acc, slot) => acc + (slot.files?.length || 0), 0) || 0}
           </span>
           {comp?.has_missing_doc && (
             <span className="w-2 h-2 rounded-full bg-rose-500"></span>
           )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab("history")}
+          className={`pb-3 text-sm font-bold flex items-center space-x-2 border-b-2 transition cursor-pointer ${
+            activeTab === "history"
+              ? "border-indigo-600 text-indigo-600"
+              : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <History className="w-4 h-4" />
+          <span>Tab C: Changes & Audit Log</span>
+          <span className="px-2 py-0.5 text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full font-mono font-bold">
+            {auditLogs.length}
+          </span>
         </button>
       </div>
 
@@ -855,6 +913,206 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB C: Changes History & Audit Trail                                      */}
+      {/* ========================================================================= */}
+      {activeTab === "history" && (
+        <div className="space-y-6">
+          {/* Header & Filter Controls */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <History className="w-5 h-5 text-indigo-600" />
+                <span>Personnel Audit Trail & Change Log</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Full chronological history of profile modifications, date updates, and document transactions.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Filter by user or field..."
+                  value={auditSearch}
+                  onChange={(e) => setAuditSearch(e.target.value)}
+                  className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+              </div>
+
+              <select
+                value={auditFilter}
+                onChange={(e) => setAuditFilter(e.target.value)}
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="ALL">All Actions ({auditLogs.length})</option>
+                <option value="FIELD_UPDATE">Field Updates Only</option>
+                <option value="DOCUMENT">Document Activities</option>
+                <option value="DRIVER_CREATED">Profile Created</option>
+              </select>
+
+              <button
+                onClick={loadAuditLogs}
+                disabled={loadingAudit}
+                className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl border border-slate-200 transition cursor-pointer"
+                title="Refresh Change Log"
+              >
+                <RefreshCw className={`w-4 h-4 ${loadingAudit ? "animate-spin text-indigo-600" : ""}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Audit Logs Table / List */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            {auditLogs.filter((log) => {
+              if (auditFilter === "FIELD_UPDATE" && log.action_type !== "FIELD_UPDATE") return false;
+              if (auditFilter === "DOCUMENT" && !["DOCUMENT_UPLOAD", "DOCUMENT_REPLACE", "DOCUMENT_DELETE"].includes(log.action_type)) return false;
+              if (auditFilter === "DRIVER_CREATED" && log.action_type !== "DRIVER_CREATED") return false;
+              if (auditSearch.trim()) {
+                const q = auditSearch.toLowerCase();
+                const matchStaff = log.staff_name?.toLowerCase().includes(q);
+                const matchField = log.field_name?.toLowerCase().includes(q);
+                const matchOld = log.old_value?.toLowerCase().includes(q);
+                const matchNew = log.new_value?.toLowerCase().includes(q);
+                const matchNotes = log.notes?.toLowerCase().includes(q);
+                if (!matchStaff && !matchField && !matchOld && !matchNew && !matchNotes) return false;
+              }
+              return true;
+            }).length === 0 ? (
+              <div className="p-12 text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                  <History className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-700">No Changes Recorded Yet</h4>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                  Whenever staff members edit fields, update expiry dates, or upload/replace documents, each modification will be recorded here with user details, previous values, and exact timestamps.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[11px]">
+                    <tr>
+                      <th className="py-3.5 px-6">Timestamp (UK)</th>
+                      <th className="py-3.5 px-6">Changed By</th>
+                      <th className="py-3.5 px-6">Change Type</th>
+                      <th className="py-3.5 px-6">Field / Document</th>
+                      <th className="py-3.5 px-6">Previous Value</th>
+                      <th className="py-3.5 px-6">New Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {auditLogs
+                      .filter((log) => {
+                        if (auditFilter === "FIELD_UPDATE" && log.action_type !== "FIELD_UPDATE") return false;
+                        if (auditFilter === "DOCUMENT" && !["DOCUMENT_UPLOAD", "DOCUMENT_REPLACE", "DOCUMENT_DELETE"].includes(log.action_type)) return false;
+                        if (auditFilter === "DRIVER_CREATED" && log.action_type !== "DRIVER_CREATED") return false;
+                        if (auditSearch.trim()) {
+                          const q = auditSearch.toLowerCase();
+                          const matchStaff = log.staff_name?.toLowerCase().includes(q);
+                          const matchField = log.field_name?.toLowerCase().includes(q);
+                          const matchOld = log.old_value?.toLowerCase().includes(q);
+                          const matchNew = log.new_value?.toLowerCase().includes(q);
+                          const matchNotes = log.notes?.toLowerCase().includes(q);
+                          if (!matchStaff && !matchField && !matchOld && !matchNew && !matchNotes) return false;
+                        }
+                        return true;
+                      })
+                      .map((log) => {
+                        const dateObj = new Date(log.created_at);
+                        const timeStr = !isNaN(dateObj.getTime())
+                          ? dateObj.toLocaleString("en-GB", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              second: "2-digit",
+                            })
+                          : log.created_at;
+
+                        return (
+                          <tr key={log.id} className="hover:bg-slate-50/60 transition">
+                            <td className="py-4 px-6 font-mono text-slate-600 whitespace-nowrap">
+                              <div className="flex items-center space-x-1.5">
+                                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span>{timeStr}</span>
+                              </div>
+                            </td>
+
+                            <td className="py-4 px-6 whitespace-nowrap">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[10px]">
+                                  {log.staff_name.slice(0, 2).toUpperCase()}
+                                </div>
+                                <span className="font-semibold text-slate-900">{log.staff_name}</span>
+                              </div>
+                            </td>
+
+                            <td className="py-4 px-6 whitespace-nowrap">
+                              {log.action_type === "FIELD_UPDATE" && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                  Field Update
+                                </span>
+                              )}
+                              {log.action_type === "DOCUMENT_UPLOAD" && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  Document Uploaded
+                                </span>
+                              )}
+                              {log.action_type === "DOCUMENT_REPLACE" && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                  Document Replaced
+                                </span>
+                              )}
+                              {log.action_type === "DOCUMENT_DELETE" && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                  Document Deleted
+                                </span>
+                              )}
+                              {log.action_type === "DRIVER_CREATED" && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                  Profile Created
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="py-4 px-6 font-semibold text-slate-900 whitespace-nowrap">
+                              {log.field_name}
+                            </td>
+
+                            <td className="py-4 px-6 max-w-xs">
+                              {log.old_value ? (
+                                <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-mono bg-rose-50 text-rose-700 border border-rose-200 line-through">
+                                  {log.old_value}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 italic">None (Empty)</span>
+                              )}
+                            </td>
+
+                            <td className="py-4 px-6 max-w-xs">
+                              {log.new_value ? (
+                                <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  {log.new_value}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 italic">None (Cleared)</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
