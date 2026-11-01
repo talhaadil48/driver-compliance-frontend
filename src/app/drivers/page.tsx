@@ -265,7 +265,7 @@ export default function DriversPage() {
                           #{d.callsign}
                         </span>
                       ) : (
-                        <span className="text-slate-400">ID #{d.id}</span>
+                        <span className="text-slate-400 italic">Not set</span>
                       )}
                     </td>
                     <td className="py-4 px-6">

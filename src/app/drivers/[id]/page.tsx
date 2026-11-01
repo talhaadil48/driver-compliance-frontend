@@ -391,8 +391,6 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
                     <span className="text-slate-400 italic">Not set</span>
                   )}
                 </span>
-                <span>&bull;</span>
-                <span className="text-slate-400">Database ID #{driver.id}</span>
               </div>
             </div>
           </div>
@@ -759,7 +757,7 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
                 <span>Personnel Documents</span>
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                Upload compliance documents for {driver.full_name}. Files are saved directly to AWS S3 under <code className="text-indigo-600 font-mono font-semibold">driver-compliance/{driver.id}_{driver.full_name.replace(/\s+/g, '_')}/</code>.
+                Upload and manage compliance documents for {driver.full_name}.
               </p>
             </div>
           </div>
@@ -1128,8 +1126,8 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
                 <h3 className="text-base font-bold text-slate-900">
                   Upload {uploadModalSlot.name}
                 </h3>
-                <span className="text-xs text-slate-400 font-mono">
-                  driver-compliance/{driver.id}_{driver.full_name.replace(/\s+/g, '_')}/
+                <span className="text-xs text-slate-400">
+                  {driver.full_name} {driver.callsign ? `(#${driver.callsign})` : ""}
                 </span>
               </div>
               <button
