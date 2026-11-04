@@ -213,9 +213,9 @@ export default function DriversPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
               <tr>
+                <th className="py-3.5 px-6">ID</th>
                 <th className="py-3.5 px-6">Personnel Full Name</th>
                 <th className="py-3.5 px-6">Role / Type</th>
-                <th className="py-3.5 px-6">Callsign / ID</th>
                 <th className="py-3.5 px-6">Compliance Status</th>
                 <th className="py-3.5 px-6">Uploaded Docs</th>
                 <th className="py-3.5 px-6 text-right">Actions</th>
@@ -233,6 +233,21 @@ export default function DriversPage() {
               ) : (
                 drivers.map((d) => (
                   <tr key={d.id} className="hover:bg-slate-50/50 transition">
+                    <td className="py-4 px-6 font-mono text-xs">
+                      {d.callsign ? (
+                        <span
+                          className={`px-2.5 py-1 rounded-lg border font-bold ${
+                            d.type === "Passenger"
+                              ? "bg-purple-50 border-purple-200 text-purple-700"
+                              : "bg-indigo-50 border-indigo-200 text-indigo-700"
+                          }`}
+                        >
+                          {d.callsign}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 italic">Not set</span>
+                      )}
+                    </td>
                     <td className="py-4 px-6">
                       <Link
                         href={`/drivers/${d.id}`}
@@ -252,21 +267,6 @@ export default function DriversPage() {
                       >
                         {d.type || "Driver"}
                       </span>
-                    </td>
-                    <td className="py-4 px-6 font-mono text-xs">
-                      {d.callsign ? (
-                        <span
-                          className={`px-2.5 py-1 rounded-lg border font-bold ${
-                            d.type === "Passenger"
-                              ? "bg-purple-50 border-purple-200 text-purple-700"
-                              : "bg-indigo-50 border-indigo-200 text-indigo-700"
-                          }`}
-                        >
-                          #{d.callsign}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 italic">Not set</span>
-                      )}
                     </td>
                     <td className="py-4 px-6">
                       <StatusBadge status={d.overall_status} label={d.overall_badge} />
@@ -380,7 +380,7 @@ export default function DriversPage() {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      {formData.type === "Passenger" ? "Passenger ID (e.g. P5) *" : "Driver Callsign / ID *"}
+                      {formData.type === "Passenger" ? "Passenger ID (e.g. P5) *" : "ID *"}
                     </label>
                     <input
                       type="text"

@@ -367,7 +367,7 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
                         : "bg-indigo-50 border-indigo-200 text-indigo-700"
                     }`}
                   >
-                    {driver.type === "Passenger" ? `Passenger ID #${driver.callsign}` : `Callsign #${driver.callsign}`}
+                    ID: {driver.callsign}
                   </span>
                 )}
                 <span>
@@ -540,7 +540,7 @@ export default function DriverDetailPage({ params }: { params: Promise<{ id: str
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    {tabAData.type === "Passenger" ? "Passenger ID (e.g. P1)" : "Driver Callsign / ID *"}
+                    {tabAData.type === "Passenger" ? "Passenger ID (e.g. P1)" : "ID *"}
                   </label>
                   <input
                     type="text"
